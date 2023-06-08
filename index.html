@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-gap: 10px;
+        width: 300px;
+        margin: 0 auto;
+      }
+
+      .cell {
+        width: 100px;
+        height: 100px;
+        border: 1px solid #0a0a0ab0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        cursor: pointer;
+      }
+
+      #result {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 1.2rem;
+      }
+      .user {
+        color: rgb(224, 8, 231);
+      }
+      .model {
+        color: rgb(0, 0, 0);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Tatetí Paniagua Nahuel</h1>
+    <div class="board">
+      <div class="cell" id="cell0"></div>
+      <div class="cell" id="cell1"></div>
+      <div class="cell" id="cell2"></div>
+      <div class="cell" id="cell3"></div>
+      <div class="cell" id="cell4"></div>
+      <div class="cell" id="cell5"></div>
+      <div class="cell" id="cell6"></div>
+      <div class="cell" id="cell7"></div>
+      <div class="cell" id="cell8"></div>
+    </div>
+    <div id="result"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.0.0/dist/tf.min.js"></script>
+    <script>
+      // Variables globales
+      let currentPlayer = 1; // 1 para el usuario, -1 para el modelo
+      let boardState = [0, 0, 0, 0, 0, 0, 0, 0, 0]; // Estado actual del tablero
+      let gameEnded = false; // Indica si el juego ha terminado
+
+      // Función para reiniciar el juego
+      function restartGame() {
+        currentPlayer = 1;
+        boardState = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+        gameEnded = false;
+        clearBoard();
+        updateMessage("");
+      }
+
+      // Función para limpiar el tablero visualmente
+      function clearBoard() {
+        const cells = document.querySelectorAll(".cell");
+        cells.forEach((cell) => {
+          cell.textContent = "";
+          cell.classList.remove("user", "model");
+        });
+      }
+
+      // Función para actualizar el mensaje en el div de resultado
+      function updateMessage(message) {
+        const resultDiv = document.getElementById("result");
+        resultDiv.textContent = message;
+      }
+
+      // Función para manejar el click en una celda
+      function handleCellClick(cellIndex) {
+        if (gameEnded || boardState[cellIndex] !== 0) {
+          return;
+        }
+
+        // Actualizar el estado del tablero y el contenido visual de la celda
+        boardState[cellIndex] = currentPlayer;
+        const cell = document.getElementById(`cell${cellIndex}`);
+        cell.textContent = currentPlayer === 1 ? "X" : "O";
+        cell.classList.add(currentPlayer === 1 ? "user" : "model");
+
+        // Verificar si el juego ha terminado
+        if (checkGameOver()) {
+          gameEnded = true;
+          return;
+        }
+
+        // Cambiar el turno
+        currentPlayer = -currentPlayer;
+
+        // Realizar la jugada del modelo después de un breve retraso
+        setTimeout(makeModelMove, 500);
+      }
+
+      // Función para que el modelo realice su jugada
+      async function makeModelMove() {
+        if (gameEnded) {
+          return;
+        }
+
+        // Hacer una copia del estado actual del tablero
+        const boardCopy = [...boardState];
+
+        // Obtener las posiciones vacías en el tablero
+        const emptyPositions = [];
+        for (let i = 0; i < boardCopy.length; i++) {
+          if (boardCopy[i] === 0) {
+            emptyPositions.push(i);
+          }
+        }
+
+        // Elegir una posición vacía aleatoriamente
+        const randomIndex = Math.floor(Math.random() * emptyPositions.length);
+        const position = emptyPositions[randomIndex];
+
+        // Actualizar el estado del tablero y el contenido visual de la celda
+        boardState[position] = currentPlayer;
+        const cell = document.getElementById(`cell${position}`);
+        cell.textContent = currentPlayer === 1 ? "X" : "O";
+        cell.classList.add(currentPlayer === 1 ? "user" : "model");
+
+        // Verificar si el juego ha terminado
+        if (checkGameOver()) {
+          gameEnded = true;
+          return;
+        }
+
+        // Cambiar el turno
+        currentPlayer = -currentPlayer;
+      }
+
+      // Función para comprobar si el juego ha terminado
+      function checkGameOver() {
+        const winningCombinations = [
+          [0, 1, 2], [3, 4, 5], [6, 7, 8], // Filas
+          [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columnas
+          [0, 4, 8], [2, 4, 6] // Diagonales
+        ];
+
+        // Comprobar si hay un ganador
+        for (const combination of winningCombinations) {
+          const [a, b, c] = combination;
+          if (
+            boardState[a] !== 0 &&
+            boardState[a] === boardState[b] &&
+            boardState[a] === boardState[c]
+          ) {
+            if (boardState[a] === 1) {
+              updateMessage("¡Has ganado!");
+            } else if (boardState[a] === -1) {
+              updateMessage("El modelo ha ganado");
+            }
+            // Reiniciar el juego después de un tiempo
+            setTimeout(restartGame, 2000);
+            return true;
+          }
+        }
+
+        // Comprobar si hay un empate
+        if (!boardState.includes(0)) {
+          updateMessage("¡Empate!");
+          // Reiniciar el juego después de un tiempo
+          setTimeout(restartGame, 2000);
+          return true;
+        }
+
+        // El juego aún no ha terminado
+        return false;
+      }
+
+      // Asignar el manejador de eventos a cada celda
+      const cells = document.querySelectorAll(".cell");
+      cells.forEach((cell, index) => {
+        cell.addEventListener("click", () => handleCellClick(index));
+      });
+    </script>
+  </body>
+</html>
